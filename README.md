@@ -22,7 +22,7 @@ $ pip install -r requirements.txt
 
 ## Basic Usage
 
-`python hunter.py -k YOUR_SERPAPI_KEY -d TARGET_DOMAIN -r regex.ini`
+`python hunter.py -k YOUR_SERPAPI_KEY -d TARGET_DOMAIN -r REGEX_PATTERN`
 
 - `-k` or `--api_key`: Your SerpAPI key.
 - `-d` or `--domain`: The target domain to search for email addresses.
