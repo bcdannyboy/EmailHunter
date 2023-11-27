@@ -89,11 +89,11 @@ def main():
     print(f"Starting email search for domain {DOMAIN}")
     print(f"Using regex pattern {EMAIL_REGEX}") 
     print(f"Pulling a maximum of {MAX_RESULTS} results from Google")
-    print(f"Searching the following dorks: {', '.join(search_terms)}")
     
+    searched = 0
     for term in search_terms:
-    
-        print(f"Searching dork: {term}")
+        searched += 1
+        print(f"Searching query {searched}/{len(search_terms)}: {term}")
 
         # Set up and perform the Google search 
         search = GoogleSearch({"api_key": API_KEY, "engine": "google", "q": term, "num": MAX_RESULTS})
