@@ -9,6 +9,8 @@ from tqdm import tqdm
 
 # Array of google dorks
 google_dorks = [
+    '@example.com',
+    '"@example.com"',
     'allintext: @example.com',
     'intext:@example.com email',
     'intitle:"example.com email"',
