@@ -26,24 +26,14 @@ $ pip install -r requirements.txt
 
 - `-k` or `--api_key`: Your SerpAPI key.
 - `-d` or `--domain`: The target domain to search for email addresses.
-- `-r` or `--regex_config`: Path to the regex configuration file.
+- `-m` or `--max_presults`: The maximum number of results to pull from.
+- `-r` or `--regex`: Regex patterns to match local email address parts.
 
 ### Example
 
-`python hunter.py -k abc123xyz -d bcdefense.com -r regex.ini`
+`python hunter.py -k abc123xyz -d bcdefense.com -r [A-Za-z09]{6}`
 
-This command will search for email addresses that belong to the bcdefense.com domain, using the regex patterns defined in regex.ini.
-
-## regex.ini File
-
-The regex.ini file is a crucial component of EmailHunter. It contains two regular expressions:
-
-- `email`: Defines the pattern for matching email addresses. Example: `[^@]+@bcdefense.com` matches any string followed by @bcdefense.com.
-- `local`: Specifies the pattern for the local part (before the @ symbol) of the email address. Example: `[A-Za-z0-9]{6}` matches any alphanumeric string of exactly 6 characters.
-
-### Customizing regex.ini
-
-You can modify regex.ini to suit your specific needs. For instance, to hunt for emails from a different domain, change the email pattern accordingly. Similarly, adjust the local pattern to match different criteria for the local part of the email addresses.
+This command will search for email addresses that belong to the bcdefense.com domain and that have a local part of 6 characters in length. The results will be saved in a CSV file named emails.csv.
 
 ## Output
 
