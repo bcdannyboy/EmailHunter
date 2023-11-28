@@ -1,11 +1,12 @@
 import requests
-import re  
+import re
 import sys
 import argparse
 from serpapi import GoogleSearch
 import csv
-from concurrent.futures import ThreadPoolExecutor 
-from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
+import aiohttp
 
 # Array of google dorks
 google_dorks = [
@@ -63,7 +64,7 @@ google_dorks = [
     'site:*.example.com filetype:txt',
 ]
 
-# Set up command-line argument parsing  
+# Set up command-line argument parsing
 parser = argparse.ArgumentParser(description="Email Hunter: A tool to scrape emails from a given domain.")
 parser.add_argument("-k", "--api_key", required=True, help="API key for SerpAPI")
 parser.add_argument("-d", "--domain", required=True, help="Domain for email addresses") 
@@ -71,101 +72,44 @@ parser.add_argument("-m", "--max_results", default=100, type=int, help="Max sear
 parser.add_argument("-r", "--regex", required=True, help="Regex pattern for matching emails")
 args = parser.parse_args()
 
-# Initialize settings from arguments   
+# Initialize settings from arguments
 DOMAIN = args.domain  
 MAX_RESULTS = args.max_results
 API_KEY = args.api_key
 EMAIL_REGEX = args.regex
 
-# Define the search terms for the Google search  
+# Compiled regex patterns for efficiency
+DOMAIN_REGEX = re.compile(rf"\b[A-Za-z0-9._%+-]+@{re.escape(DOMAIN)}\b")
+EXACT_REGEX = re.compile(rf"{EMAIL_REGEX}@{re.escape(DOMAIN)}")
+
+# Define the search terms for the Google search
 search_terms = [dork.replace('example.com', DOMAIN) for dork in google_dorks]
 
-# Initialize dictionaries to store found emails  
+# Initialize dictionaries to store found emails
 exact_emails = {}
 found_emails = {}
 
-def main():
+async def fetch_emails(session, link):
+    try:
+        async with session.get(link) as response:
+            text = await response.text()
 
-    print(f"Starting email search for domain {DOMAIN}")
-    print(f"Using regex pattern: {EMAIL_REGEX}")
-    print(f"Maximum Google search results per query: {MAX_RESULTS}")
-   
-    print("Beginning search queries...")
-    
-    searched = 0
-    for term in search_terms:
-        searched += 1
-        print(f"Performing search query {searched} out of {len(search_terms)}: {term}")
+            domain_emails = re.findall(DOMAIN_REGEX, text)
+            exact_match_emails = re.findall(EXACT_REGEX, text)
 
-        # Set up and perform the Google search
-        search = GoogleSearch({"api_key": API_KEY, "engine": "google", "q": term, "num": MAX_RESULTS})
-        results = search.get_dict()
-        links = [link['link'] for link in results['organic_results']]
-        
-        print(f"Found {len(links)} search results for this query.")
-               
-        # Use ThreadPoolExecutor to fetch emails concurrently
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(fetch_emails, link) for link in links]
-            
-            for future in futures:   
-                exact, found = future.result()
-                
-                for email, domains in exact.items():
-                    if email not in exact_emails:
-                        exact_emails[email] = set()   
-                    exact_emails[email].update(domains)
-
-                for email, domains in found.items():
-                    if email not in found_emails:
-                        found_emails[email] = set()
-                    found_emails[email].update(domains)
-                
-        print("Completed search query. Extracting emails...")
-              
-    print("Completed all search queries.")
-    
-    # Write the exact match emails to a CSV file
-    write_emails_to_csv('exact_matches.csv', exact_emails)
-
-    # Write all found emails to a CSV file 
-    write_emails_to_csv('found_emails.csv', found_emails)
-            
-    print("Email extraction finished. Results saved to CSV files.")
-      
-def fetch_emails(link):
-    """ Fetch and extract emails from a given link. """  
-    domain = DOMAIN  # Use the domain from the args
-    
-    # Fetch the webpage content 
-    page = requests.get(link)
-        
-    # Regex pattern for extracting all emails associated with the domain
-    domain_regex = rf"\b[A-Za-z0-9._%+-]+@{re.escape(domain)}\b"
-
-    # Find all emails belonging to the domain 
-    domain_emails = re.findall(domain_regex, page.text)
-
-    # Pattern for emails that match the provided regex  
-    exact_regex = rf"{EMAIL_REGEX}@{re.escape(domain)}"
-
-    # Find emails that exactly match the provided regex
-    exact_match_emails = re.findall(exact_regex, page.text)
-    
-    # Organize emails  
-    exact = organize_emails(exact_match_emails, domain)
-    found = organize_emails(domain_emails, domain)
-    
-    print(f"Found {len(exact)} exact match emails and {len(found)} emails that match the domain from {link}")
-    
-    return exact, found
+            exact = organize_emails(exact_match_emails, DOMAIN)
+            found = organize_emails(domain_emails, DOMAIN)
+            return exact, found
+    except Exception as e:
+        print(f"Error fetching {link}: {e}")
+        return {}, {}
 
 def organize_emails(emails, domain):
     """ Organize emails into a dictionary. """
     organized_emails = {}
     for email in emails:
         if email not in organized_emails:
-            organized_emails[email] = set() 
+            organized_emails[email] = set()
         organized_emails[email].add(domain)
     return organized_emails
 
@@ -177,6 +121,57 @@ def write_emails_to_csv(filename, email_dict):
         
         for email, domains in email_dict.items():
             writer.writerow([email, ', '.join(domains)])
-            
+
+
+async def main_async():
+    print(f"Starting email search for domain {DOMAIN}")
+    print(f"Using regex pattern: {EMAIL_REGEX}")
+    print(f"Maximum Google search results per query: {MAX_RESULTS}")
+    print("Beginning search queries...")
+
+    async with aiohttp.ClientSession() as session:
+        with ThreadPoolExecutor() as executor:
+            loop = asyncio.get_event_loop()
+            tasks = []
+
+            # Function to run serpapi searches in the executor
+            def run_search(term):
+                search = GoogleSearch({"api_key": API_KEY, "engine": "google", "q": term, "num": MAX_RESULTS})
+                results = search.get_dict()
+                links = [link['link'] for link in results.get('organic_results', [])]
+                return links
+
+            # Asynchronously schedule all serpapi searches and fetches
+            for term in search_terms:
+                # Schedule serpapi search
+                search_task = loop.run_in_executor(executor, run_search, term)
+                links = await search_task  # Wait for the search to complete
+
+                # Schedule email fetches for each link
+                for link in links:
+                    fetch_task = loop.run_in_executor(executor, fetch_emails, session, link)
+                    tasks.append(fetch_task)
+
+            # Wait for all tasks to complete
+            results = await asyncio.gather(*tasks)
+
+            # Process results
+            for exact, found in results:
+                for email, domains in exact.items():
+                    if email not in exact_emails:
+                        exact_emails[email] = set()
+                    exact_emails[email].update(domains)
+
+                for email, domains in found.items():
+                    if email not in found_emails:
+                        found_emails[email] = set()
+                    found_emails[email].update(domains)
+
+    # Write results to CSV files
+    write_emails_to_csv('exact_matches.csv', exact_emails)
+    write_emails_to_csv('found_emails.csv', found_emails)
+
+    print("Email extraction finished. Results saved to CSV files.")
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main_async())
