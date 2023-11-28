@@ -1,3 +1,7 @@
 requests
 google-search-results
-tqdm
+aiohttp
+PyPDF2
+python-docx
+openpyxl
+python-pptx

@@ -1,3 +1,4 @@
+import io
 import requests
 import re
 import sys
@@ -6,6 +7,12 @@ from serpapi import GoogleSearch
 import csv
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+import re
+import openpyxl
+from io import BytesIO
+from PyPDF2 import PdfReader
+import docx
+import pptx
 import aiohttp
 
 # Array of google dorks
@@ -90,6 +97,7 @@ google_dorks = [
     'inurl:"@example.com" filetype:csv',
     'inurl:github.com "@example.com"',
     'filetype:xlsx "@example.com"',
+    'filetype:pptx "@example.com"',
     'inurl:faculty "@example.com"',
     'site:*.example.com inurl:staff',
     'site:*.example.com inurl:user',
@@ -115,7 +123,14 @@ API_KEY = args.api_key
 EMAIL_REGEX = args.regex
 
 # Compiled regex patterns for efficiency
-DOMAIN_REGEX = re.compile(rf"\b[A-Za-z0-9._%+-]+@{re.escape(DOMAIN)}\b")
+
+DOMAIN_REGEXs = [
+    r'\b[A-Za-z0-9._%+-]+@example.com\b',  # Standard email pattern
+    r'[A-Za-z0-9._%+-]+ \[at\] example.com',  # Obfuscated pattern
+    r'[A-Za-z0-9._%+-]+ at example.com',  # Another obfuscated pattern
+    r'[A-Za-z0-9._%+-]+[ ]?@[ ]?example.com',  # Spaces around @
+    r'[A-Za-z0-9._%+-]+\(at\)example.com',  # (at) instead of @
+]
 EXACT_REGEX = re.compile(rf"{EMAIL_REGEX}@{re.escape(DOMAIN)}")
 
 # Define the search terms for the Google search
@@ -126,17 +141,57 @@ exact_emails = {}
 found_emails = {}
 
 async def fetch_emails(session, link):
+    """ Fetch emails from a link. Works with standard HTML, PDF, Word, Excel, and PowerPoint files."""
     print(f"Fetching emails from {link}...")
     try:
         async with session.get(link) as response:
-            text = await response.text()
+            content_type = response.headers.get('Content-Type', '')
 
-            domain_emails = re.findall(DOMAIN_REGEX, text)
-            exact_match_emails = re.findall(EXACT_REGEX, text)
+            if 'text/html' in content_type:
+                print("Found an HTML file. Extracting text...")
+                text = await response.text()
+            elif 'application/pdf' in content_type:
+                print("Found a PDF file. Extracting text...")
+                bytes_io = io.BytesIO(await response.read())
+                reader = PdfReader(bytes_io)
+                text = ''
+                for page in reader.pages:
+                    text += page.extract_text()
+            elif 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' in content_type:
+                print("Found a Word file. Extracting text...")
+                doc = docx.Document(BytesIO(await response.read()))
+                text = '\n'.join([para.text for para in doc.paragraphs])
+            elif 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in content_type:
+                print("Found an Excel file. Extracting text...")
+                wb = openpyxl.load_workbook(BytesIO(await response.read()), data_only=True)
+                text = ''
+                for sheet in wb:
+                    for row in sheet.iter_rows(values_only=True):
+                        text += ' '.join([str(cell) for cell in row if cell is not None]) + '\n'
+            elif 'application/vnd.openxmlformats-officedocument.presentationml.presentation' in content_type:
+                print("Found a PowerPoint file. Extracting text...")
+                ppt = pptx.Presentation(BytesIO(await response.read()))
+                text = ''
+                for slide in ppt.slides:
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text"):
+                            text += shape.text + '\n'
+            else:
+                print(f"Unknown file type: {content_type}")
+                text = await response.text()
 
-            exact = organize_emails(exact_match_emails, DOMAIN)
-            found = organize_emails(domain_emails, DOMAIN)
-            print(f"Found {len(exact_match_emails)} exact matches and {len(domain_emails)} emails for {link}")
+            print("Searching for emails...")
+            all_domain_emails = []
+            for domain_regex in DOMAIN_REGEXs:
+                domain_regex = domain_regex.replace('example.com', DOMAIN)
+                domain_emails = re.findall(domain_regex, text)
+                all_domain_emails.extend(domain_emails)
+
+            exact_match_emails = [email for email in all_domain_emails if re.match(EXACT_REGEX, email)]
+
+            exact = organize_emails(exact_match_emails, link)
+            found = organize_emails(all_domain_emails, link)
+            print(f"Found {len(exact_match_emails)} exact matches and {len(all_domain_emails)} emails for {link}")
             return exact, found
     except Exception as e:
         print(f"Error fetching {link}: {e}")
@@ -166,6 +221,7 @@ async def main_async():
     print(f"Using regex pattern: {EMAIL_REGEX}")
     print(f"Maximum Google search results per query: {MAX_RESULTS}")
     print("Beginning search queries...")
+
 
     async with aiohttp.ClientSession() as session:
         tasks = []

@@ -29,11 +29,23 @@ There are now two separate scripts:
 
 ### GitHub Search
 
-`python git_hunter.py -d DOMAIN -r REGEX -k GITHUB_TOKEN`
+`python git_hunter.py -d DOMAIN -r "REGEX" -k GITHUB_TOKEN`
+
+Example:
+
+`python git_hunter.py -d example.com -r "^[a-zA-Z0-9]+[._-]?[a-zA-Z0-9]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" -k GITHUB_TOKEN`
+
+This will search for all GitHub emails associated with the domain `example.com` and filter them using the regex provided. The GitHub token is required for authentication. You can generate one [here](https://github.com/settings/tokens?type=beta)
 
 ### Google Search
 
-`python google_hunter.py -d DOMAIN -r REGEX -k SERPAPI_KEY -m MAX_RESULTS`
+`python google_hunter.py -d DOMAIN -r "REGEX" -k SERPAPI_KEY -m MAX_RESULTS`
+
+Example:
+
+`python google_hunter.py -d example.com -r "^[a-zA-Z0-9]+[._-]?[a-zA-Z0-9]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" -k SERPAPI_KEY -m 100`
+
+This will search for all Google results associated with the domain `example.com` and filter them using the regex provided. The SerpAPI key is required for authentication. You can generate one [here](https://serpapi.com/)
 
 ### Both
 
