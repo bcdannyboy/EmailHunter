@@ -2,41 +2,61 @@
 
 ## Overview
 
-EmailHunter is a powerful and efficient tool designed to scrape email addresses from web pages. It leverages regular expressions (regex) and Google dorks (search queries) to find emails associated with a specific domain. This tool is particularly useful for gathering email addresses for business, research, or networking purposes. *It requires a SerpAPI API key to function.*
+EmailHunter is a toolkit for scraping email addresses from the web. It leverages GitHub's API and Google search to find emails associated with a particular domain. Useful for research, recruitment, networking and more. Requires a GitHub token and SerpAPI key.
 
 ## Features
-- Domain-Specific Email Hunting: Focuses on a specified domain to gather relevant email addresses.
-- Regex-Based Filtering: Uses regular expressions to match and filter email addresses and local parts.
-- Google Dorks Integration: Employs Google dorks for efficient and targeted web scraping.
-- Concurrent Processing: Utilizes multi-threading for faster processing of multiple web pages.
-- CSV Output: Outputs the gathered emails into a CSV file for easy use and analysis.
+
+- Domain-focused email scraping
+- GitHub code and repo search
+- Google dork search queries
+- Regex filtering
+- Multithreading for faster processing
+- CSV export
 
 ## Installation
-To use EmailHunter, you need Python installed on your system. Clone the repository and install the required packages:
 
-```
+``````
 $ git clone https://github.com/bcdannyboy/EmailHunter.git
 $ cd EmailHunter
 $ pip install -r requirements.txt
 ```
 
-## Basic Usage
+Python 3.6 or higher required.
 
-`python hunter.py -k YOUR_SERPAPI_KEY -d TARGET_DOMAIN -r REGEX_PATTERN`
+## Usage
 
-- `-k` or `--api_key`: Your SerpAPI key.
-- `-d` or `--domain`: The target domain to search for email addresses.
-- `-m` or `--max_presults`: The maximum number of results to pull from.
-- `-r` or `--regex`: Regex patterns to match local email address parts.
+There are now two separate scripts:
 
-### Example
+### GitHub Search
 
-`python hunter.py -k abc123xyz -d bcdefense.com -r [A-Za-z09]{6}`
+`python git_hunter.py -d DOMAIN -r REGEX -k GITHUB_TOKEN`
 
-This command will search for email addresses that belong to the bcdefense.com domain and that have a local part of 6 characters in length. The results will be saved in two CSV files named exact_matches.csv and found_emails.csv
+### Google Search
+
+`python google_hunter.py -d DOMAIN -r REGEX -k SERPAPI_KEY -m MAX_RESULTS`
+
+### Both
+
+Both scripts share the same arguments:
+
+- `-d`: Target domain
+- `-r`: Regex filter
+- `-k`: API key
+
+Google Search also has:
+
+- `-m`: Max results
 
 ## Output
 
-EmailHunter outputs the results in 2 CSV files named exact_matches.csv and found_emails.csv, both containing two columns: 'Email' and 'Domains'. Each row represents a unique email address and the domain(s) where it was found.
+The scripts output the following files:
 
-exact_matches.csv contains the exact matches for the target domain and regex pattern. found_emails.csv contains the emails found in the web pages that were scraped.
+### Git Hunter Output
+
+- `git_emails.csv``: All GitHub emails found
+- `exact_git_emails.csv`: Matches regex filter
+
+### Google Hunter Output
+
+- `exact_matches.csv`: Google results matching regex
+- `found_emails.csv`: All Google results
