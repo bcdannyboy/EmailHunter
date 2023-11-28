@@ -53,7 +53,7 @@ The scripts output the following files:
 
 ### Git Hunter Output
 
-- `git_emails.csv``: All GitHub emails found
+- `git_emails.csv`: All GitHub emails found
 - `exact_git_emails.csv`: Matches regex filter
 
 ### Google Hunter Output
