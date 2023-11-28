@@ -15,7 +15,8 @@ google_dorks = [
     'allintext: @example.com',
     'intext:@example.com email',
     'intitle:"example.com email"',
-    'inurl: github.com "@example.com"',
+    'inurl:github.com "@example.com"',
+    'site:github.com "@example.com"',
     'site:linkedin.com "@example.com"',
     'site:stackoverflow.com "@example.com"',
     'site:gitlab.com "@example.com"',
@@ -157,6 +158,7 @@ async def main_async():
                     tasks.append(fetch_task)
 
             # Wait for all tasks to complete
+            print(f"Waiting for {len(tasks)} tasks to complete...")
             results = await asyncio.gather(*tasks)
 
             # Process results
