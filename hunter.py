@@ -153,6 +153,7 @@ async def main_async():
                 # Schedule email fetches for each link
                 for link in links:
                     fetch_task = loop.run_in_executor(executor, fetch_emails, session, link)
+                    print(f"Scheduled fetch for {link}")
                     tasks.append(fetch_task)
 
             # Wait for all tasks to complete
