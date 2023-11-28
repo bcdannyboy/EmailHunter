@@ -87,45 +87,54 @@ found_emails = {}
 def main():
 
     print(f"Starting email search for domain {DOMAIN}")
-    print(f"Using regex pattern {EMAIL_REGEX}") 
-    print(f"Pulling a maximum of {MAX_RESULTS} results from Google")
+    print(f"Using regex pattern: {EMAIL_REGEX}")
+    print(f"Maximum Google search results per query: {MAX_RESULTS}")
+   
+    print("Beginning search queries...")
     
     searched = 0
     for term in search_terms:
         searched += 1
-        print(f"Searching query {searched}/{len(search_terms)}: {term}")
+        print(f"Performing search query {searched} out of {len(search_terms)}: {term}")
 
-        # Set up and perform the Google search 
+        # Set up and perform the Google search
         search = GoogleSearch({"api_key": API_KEY, "engine": "google", "q": term, "num": MAX_RESULTS})
-        results = search.get_dict() 
-        links = [link['link'] for link in results['organic_results']] 
+        results = search.get_dict()
+        links = [link['link'] for link in results['organic_results']]
         
-        # Use ThreadPoolExecutor to fetch emails concurrently 
+        print(f"Found {len(links)} search results for this query.")
+               
+        # Use ThreadPoolExecutor to fetch emails concurrently
         with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(fetch_emails, link) for link in tqdm(links, desc="Processing links")]
+            futures = [executor.submit(fetch_emails, link) for link in links]
             
-            for future in tqdm(futures, desc="Fetching emails"):
+            for future in futures:   
                 exact, found = future.result()
                 
                 for email, domains in exact.items():
                     if email not in exact_emails:
-                        exact_emails[email] = set()  
+                        exact_emails[email] = set()   
                     exact_emails[email].update(domains)
 
                 for email, domains in found.items():
                     if email not in found_emails:
                         found_emails[email] = set()
                     found_emails[email].update(domains)
-                    
-    # Write the exact match emails to a CSV file 
+                
+        print("Completed search query. Extracting emails...")
+              
+    print("Completed all search queries.")
+    
+    # Write the exact match emails to a CSV file
     write_emails_to_csv('exact_matches.csv', exact_emails)
 
-    # Write all found emails to a CSV file
+    # Write all found emails to a CSV file 
     write_emails_to_csv('found_emails.csv', found_emails)
             
-    print("Email hunting complete. Results saved to exact_matches.csv and found_emails.csv")
-        
+    print("Email extraction finished. Results saved to CSV files.")
+      
 def fetch_emails(link):
+    print("Fetching emails from link: " + link)
     """ Fetch and extract emails from a given link. """  
     domain = DOMAIN  # Use the domain from the args
     
@@ -147,6 +156,8 @@ def fetch_emails(link):
     # Organize emails  
     exact = organize_emails(exact_match_emails, domain)
     found = organize_emails(domain_emails, domain)
+    
+    print(f"Found {len(exact)} exact match emails and {len(found)} emails that match the domain.")
     
     return exact, found
 
