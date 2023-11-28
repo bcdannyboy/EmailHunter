@@ -15,7 +15,7 @@ EmailHunter is a toolkit for scraping email addresses from the web. It leverages
 
 ## Installation
 
-``````
+```
 $ git clone https://github.com/bcdannyboy/EmailHunter.git
 $ cd EmailHunter
 $ pip install -r requirements.txt
