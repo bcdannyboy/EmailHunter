@@ -33,8 +33,10 @@ $ pip install -r requirements.txt
 
 `python hunter.py -k abc123xyz -d bcdefense.com -r [A-Za-z09]{6}`
 
-This command will search for email addresses that belong to the bcdefense.com domain and that have a local part of 6 characters in length. The results will be saved in a CSV file named emails.csv.
+This command will search for email addresses that belong to the bcdefense.com domain and that have a local part of 6 characters in length. The results will be saved in two CSV files named exact_matches.csv and found_emails.csv
 
 ## Output
 
-EmailHunter outputs the results in a CSV file named emails.csv, containing two columns: 'Email' and 'Domains'. Each row represents a unique email address and the domain(s) where it was found.
+EmailHunter outputs the results in 2 CSV files named exact_matches.csv and found_emails.csv, both containing two columns: 'Email' and 'Domains'. Each row represents a unique email address and the domain(s) where it was found.
+
+exact_matches.csv contains the exact matches for the target domain and regex pattern. found_emails.csv contains the emails found in the web pages that were scraped.

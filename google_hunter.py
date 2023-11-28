@@ -172,6 +172,7 @@ async def main_async():
 
         # Function to run serpapi searches in a separate thread
         def run_search(term):
+            print(f"Searching for {term}...")
             search = GoogleSearch({"api_key": API_KEY, "engine": "google", "q": term, "num": MAX_RESULTS})
             results = search.get_dict()
             links = [link['link'] for link in results.get('organic_results', [])]
