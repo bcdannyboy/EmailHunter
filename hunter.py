@@ -90,6 +90,7 @@ exact_emails = {}
 found_emails = {}
 
 async def fetch_emails(session, link):
+    print(f"Fetching emails from {link}...")
     try:
         async with session.get(link) as response:
             text = await response.text()
@@ -99,6 +100,7 @@ async def fetch_emails(session, link):
 
             exact = organize_emails(exact_match_emails, DOMAIN)
             found = organize_emails(domain_emails, DOMAIN)
+            print(f"Found {len(exact_match_emails)} exact matches and {len(domain_emails)} emails for {link}")
             return exact, found
     except Exception as e:
         print(f"Error fetching {link}: {e}")
@@ -136,6 +138,7 @@ async def main_async():
 
             # Function to run serpapi searches in the executor
             def run_search(term):
+                print(f"Searching for {term}...")
                 search = GoogleSearch({"api_key": API_KEY, "engine": "google", "q": term, "num": MAX_RESULTS})
                 results = search.get_dict()
                 links = [link['link'] for link in results.get('organic_results', [])]
