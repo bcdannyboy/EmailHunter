@@ -134,13 +134,12 @@ def main():
     print("Email extraction finished. Results saved to CSV files.")
       
 def fetch_emails(link):
-    print("Fetching emails from link: " + link)
     """ Fetch and extract emails from a given link. """  
     domain = DOMAIN  # Use the domain from the args
     
     # Fetch the webpage content 
     page = requests.get(link)
-    
+        
     # Regex pattern for extracting all emails associated with the domain
     domain_regex = rf"\b[A-Za-z0-9._%+-]+@{re.escape(domain)}\b"
 
@@ -157,7 +156,7 @@ def fetch_emails(link):
     exact = organize_emails(exact_match_emails, domain)
     found = organize_emails(domain_emails, domain)
     
-    print(f"Found {len(exact)} exact match emails and {len(found)} emails that match the domain.")
+    print(f"Found {len(exact)} exact match emails and {len(found)} emails that match the domain from {link}")
     
     return exact, found
 
